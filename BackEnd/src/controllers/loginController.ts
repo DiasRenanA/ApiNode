@@ -35,13 +35,19 @@ const getUser = async function(req, res){
 
 const postUser = async function(req, res){
     try{
-        const {name, userName, password} = req.body
+       const { name, userName, password } = req.body;
 
         if (!name || !userName || !password) {
             return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
         }
-   
-        const response = await loginModel.postUser(name, userName, password)
+
+        const existingUser = await loginModel.getUserID(userName);
+
+        if (existingUser) {
+            return res.status(409).json({ message: 'Usuário já cadastrado' });
+        }
+
+        await loginModel.postUser(name, userName, password);
         return res.status(201).json({ message: 'Usuário criado com sucesso' });
 
     }catch (error){
@@ -50,48 +56,39 @@ const postUser = async function(req, res){
     }
 }
 
-const getLogin = async function(req, res){
-    try{
-        const {userName, password} = req.body
+const getLogin = async function(req, res) {
+    try {
+        const { userName, password } = req.body;
 
         if (!userName || !password) {
             return res.status(400).json({ error: 'Email e senha são obrigatórios' });
         }
 
-        const [user] = await loginModel.getLogin(userName);
+        const user = await loginModel.getLogin(userName);
 
         if (!user) {
-            return res.status(401).json({ error: 'Credenciais inválidas - user' });
+            return res.status(401).json({ error: 'Credenciais inválidas (usuário)' });
         }
 
-        const passwordUser_teste = "12345";
-        const userId_teste = 1
-        const userName_teste = 'renan'
+        const truePassword = await bcrypt.compare(password, user.password);
 
-        var passwordTrue = false;
-
-        if(password == passwordUser_teste){
-            passwordTrue = true;
-        }
-
-        //const passwordTrue = await bcrypt.compare( passwordUser_teste,password);
-
-        if (!passwordTrue) {
-            return res.status(401).json({ error: 'Credenciais inválidas - password' });
+        if (!truePassword) {
+            return res.status(401).json({ error: 'Credenciais inválidas (senha)' });
         }
 
         const token = jwt.sign(
-            {userId: userId_teste, userName: userName_teste},
+            { userId: user.userId, userName: user.username },
             SECRET,
             { expiresIn: '1h' }
         );
+
         return res.status(200).json({ token });
 
-    }catch(error){
+    } catch (error) {
         console.error(error);
         return res.status(500).json({ error: 'Erro no servidor' });
     }
-}
+};
 
 export default{
    getAllUser,

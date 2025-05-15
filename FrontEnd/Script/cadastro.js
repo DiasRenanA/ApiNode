@@ -14,7 +14,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
 
     if (!response.ok) {
       const errorData = await response.json();
-      alert('Erro: ' + errorData.error);
+      alert('Erro: Usuario já cadastrado');
       return;
     }
 
